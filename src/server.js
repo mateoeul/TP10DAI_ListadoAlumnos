@@ -2,6 +2,7 @@ import express  from "express"; // hacer npm i express
 import cors     from "cors";    // hacer npm i cors
 import config from "./configs/db-config.js";
 import pkg from 'pg'
+import client from "pg/lib/native/client.js";
 
 
 const { Client }  = pkg;
@@ -65,7 +66,37 @@ app.get('/api/alumnos/:id', async (req, res) => {
 
 
 })
-//app.post('/api/alumnos/', async (req, res) => {...})
+
+
+app.post('/api/alumnos/', async (req, res) => {
+
+    const cliente = new Client(config)
+    const nombre = req.params.nombre
+    const apellido = req.params.apellido 
+    const id_curso = req.params.idCurso
+    const fecha_nacimiento = req.params.fechaNacimiento
+    const hace_deportes = req.params.haceDeportes
+
+    if (!nombre || !apellido || !id_curso || isNaN(Number(id_curso)) || !fecha_nacimiento || hace_deportes === undefined) {
+        return res.status(400).json({ error: "Todos los campos son obligatorios" });
+    }
+
+    try {
+        await cliente.connect();
+        const result = await cliente.query(
+            "INSERT INTO ALUMNOS (NOMBRE, APELLIDO, ID_CURSO ,FECHA_NACIMIENTO, HACE_DEPORTES) VALUES ($1, $2, $3, $4, $5) ",
+            [nombre, apellido, id_curso, fecha_nacimiento, hace_deportes]
+        );
+        res.status(201).json(result.rows[0]);
+        console.log("Alumno creado:", result.rows[0]);
+    } catch (error) {
+        console.error("Error al crear el estudiante:", error);
+        res.status(500).json({ error: error.message });
+    }
+    
+})
+
+
 //app.put('/api/alumnos/', async (req, res) => {...})
 //app.delete('/api/alumnos/:id', async (req, res) => {...})
 
@@ -75,7 +106,5 @@ app.get('/api/alumnos/:id', async (req, res) => {
 //
 
 app.listen(port, () => {
-
     console.log(`Example app listening on port ${port}`)
-
 })
